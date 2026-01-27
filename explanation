@@ -1,0 +1,140 @@
+# Alembic
+
+Alembic is a database migration tool for SQLAlchemy.
+Alembic helps you change your database structure safely over time
+(add columns, remove tables, rename fields, etc.)
+It keeps your database schema in sync with your Python models.
+
+Why do we need Alembic?
+
+Imagine this timeline 👇
+
+Day 1
+class Book(SQLModel, table=True):
+id: int | None = Field(default=None, primary_key=True)
+title: str
+
+You create tables → everything works ✅
+
+Day 10
+
+You update the model:
+
+class Book(SQLModel, table=True):
+id: int | None = Field(default=None, primary_key=True)
+title: str
+author: str
+
+Now the problem 😬
+👉 Database still does NOT have author column
+
+SQLModel.metadata.create_all() ❌ does nothing
+
+App crashes or behaves weirdly
+
+Manually editing DB = risky + unprofessional
+
+💡 This is where Alembic comes in
+
+---
+
+How Alembic works (high level)
+
+Alembic works with versions.
+
+DB v1 → DB v2 → DB v3 → ...
+
+Each change = one migration file.
+
+Example:
+
+v1 → create book table
+
+v2 → add author column
+
+v3 → rename title to name
+
+---
+
+Note :
+Use ONLY Alembic for table creation & schema changes
+We need not use conn.run_sync(SQLModel.metadata.create_all) and call that function in lifespan event for cteating tables.
+
+Do you need lifespan event if you use Alembic?
+❌ For table creation?
+
+NO
+
+Alembic is run:
+manually (alembic upgrade head)
+or during deployment / CI-CD
+Not at app startup.
+
+---
+
+✅ When DO you still need lifespan?
+
+Lifespan is still useful for:
+Opening DB connection pools
+Loading ML models
+Connecting to Redis
+Initializing background workers
+
+In real apps:
+
+DB migrations are run before starting FastAPI
+App assumes schema already exists
+
+---
+
+How to set up alembic?
+
+Before this create .env and src/config.py to read .env data and src/auth/models.py to define our model.
+Also we create a new database on postgre --> create database auth_db;
+Connect to that database --> \c auth_db
+
+1.  pip install alembic
+
+2.  alembic init -t async migrations
+    It creates :
+    migrations/
+    -- versions/
+    -- env.py
+    -- README
+    -- script.py.mako
+    alembic.ini
+
+3.  We add the following in alembic.ini :
+    The alembic.ini file contains configurations for Alembic that enable it to interact with our database and project.
+
+         # ---- added by me -----
+         from src.auth.models import UserAuthModel
+         from sqlmodel import SQLModel
+         from src.config import Config
+         # ---- added by me -----
+
+         # ---- added by me -----
+         database_url = Config.DATABASE_URL
+         config.set_main_option("sqlalchemy.url", database_url)
+         # ---- added by me -----
+
+         # modified by me
+         target_metadata = SQLModel.metadata
+
+4.  Then we add the follwing in migrations/script.py.mako
+
+        # ---- added by me -----
+        import sqlmodel
+        # ---- added by me -----
+
+5.  let's create our first database migration.
+    alembic revision --autogenerate -m "create user auth table"
+
+6.  Apply migration
+    alembic upgrade head
+
+7.  switch to auth_db -- \c auth_db
+    view created table -- \dt
+    view the desc of table -- \d authtable
+
+==================================================================
