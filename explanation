@@ -158,6 +158,19 @@ Return success response (not password!)
 After basic signup, we need to perform two important things : 
 1. On return, the password should not be visisble
 
-   For this, we do password : str = Field(exclude=True) in UserAuthModel. This will exclude the password in response. We cant do this for request as excluding it will give validation error.   
+   For this, we do password : str = Field(exclude=True) in UserAuthModel. This will exclude the password in response. We cant do this for request as excluding it will give validation error. 
+
+2. Hash the password
+
+For hashing we will use passlib
+While storing we will convert our password to hash
+While login, we will verify the entered password match our hash
+
+pip install passlib[bcrypt] is required
+
+Logic for generating hash and verifying password --> src/auth/utils.py
+
+
+
 
 

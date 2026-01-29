@@ -8,7 +8,7 @@ class UserAuthModel(SQLModel, table=True):
     id : int | None = Field(default=None, primary_key=True)
     username : str
     email : str
-    password : str = Field(exclude=True)
+    password : str
     created_at : datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
     updated_at : datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
 
