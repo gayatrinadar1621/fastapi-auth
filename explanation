@@ -138,3 +138,26 @@ Connect to that database --> \c auth_db
     view the desc of table -- \d authtable
 
 ==================================================================
+
+# Sign up Logic : 
+
+Accept user data (email / username / password)
+Hash password
+Check if user already exists
+Save user in DB
+Return success response (not password!)
+
+1. Create model for creating user account --> src/auth/models.py
+
+2. Create connection with database (create engine and session) --> src/db/main.py
+
+3. Create routes --> src/auth/routes.py
+
+4. Build logic for signup --> src/auth/services.py
+
+After basic signup, we need to perform two important things : 
+1. On return, the password should not be visisble
+
+   For this, we do password : str = Field(exclude=True) in UserAuthModel. This will exclude the password in response. We cant do this for request as excluding it will give validation error.   
+
+
