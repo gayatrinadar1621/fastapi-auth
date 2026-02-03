@@ -16,3 +16,7 @@ class CreateUserModel(SQLModel):
     username : str
     email : str
     password : str
+
+class LoginUserModel(SQLModel):
+    email : str
+    password : str

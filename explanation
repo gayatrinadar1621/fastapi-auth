@@ -170,6 +170,170 @@ pip install passlib[bcrypt] is required
 
 Logic for generating hash and verifying password --> src/auth/utils.py
 
+==================================================================
+
+# Login Logic with JWT Tokens
+
+1. Create model for login --> src/auth/models.py
+
+2. Create route --> src/auth/routes.py
+
+3. Build logic for login --> src/auth/services.py
+   --> we add logic for jwt token creation and verification in src/auth/utils.py 
+   --> Add SECRET_KEY and ALGORITHM inside .env and include them in src/config.py
+   --> If user credentials is valid, we create access token (JWT token).
+
+4. Now we protect the routes ie, only authenticated user shall access the routes. 
+   For this, client must contain the JWT token so that the server can verify it. Client can have the token in headers or cookies. We will see via headers. While making request for login, we will set headers as : 
+   Authorization: Bearer <access_token>
+   Example: 
+   Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
+
+   To read the token from the headers, we will make use of HTTPBearer library that FastAPI provides.
+
+   What HTTPBearer Does
+    Checks that Authorization header exists
+    Ensures the scheme is Bearer
+    Extracts the token string
+    Returns HTTPAuthorizationCredentials
+
+   What HTTPBearer Does NOT Do
+    Does not decode JWT
+    Does not verify signature
+    Does not check expiry
+    Does not fetch user from DB
+
+   Return Type
+    HTTPBearer returns:
+
+    HTTPAuthorizationCredentials(
+        scheme="Bearer",
+        credentials="<JWT>"
+    )
+
+    Access token via:
+    credentials.credentials
+
+5. Now that we know how to send the token via header, we will now see how to verify it. 
+   Logic is --> extract the token from the headers 
+                pass the token to verify_jwt_token() function
+                depending on the output, FastAPI will either raise exception or proceed with the request. 
+   To perform this, we create a function and we use this function via dependency injection wehere we want to protect the route. 
+   For this, we create src/auth/dependencies.py
+
+6. Now lets protect a route, let's create a dummy route under auth/routes.py
+
+    # dummy route to test protected route
+    @user_router.get("/dummy")
+    async def protected_dummy_route(user_details=Depends(get_current_user)):
+        return {"message":"You are able to see this because you have been successfully authenticated.", "user_details":user_details}
+    
+    WHats happening is BTS is : 
+    Request comes in
+    FastAPI sees Depends(get_current_user)
+    Executes dependency FIRST
+    If dependency succeeds → route executes
+    If dependency fails → response returned immediately
+
+    How to run, while making a GET request, under Authorization select Bearer token and enter the token without quotes.
+    Default value of expiration of token is 2 minutes, so after 2 minutes if we try to access the route, we get "Invalid or Expired Token".
+
+==================================================================
+
+# Refresh Tokens and Logout Logic: 
+
+--> Access Token:
+Purpose: Authorize API requests
+Type: JWT (stateless)
+Lifetime: Short (5–15 min)
+Sent: Authorization: Bearer <token>
+Risk: If stolen → attacker can access APIs until expiry
+Cannot be revoked easily
+
+--> Problem with only Access Token
+Long-lived access token  → security risk
+Short-lived access token  → user must login frequently
+Logout is ineffective (token still valid)
+
+--> Refresh Token
+Purpose: Generate new access token
+Lifetime: Long (days/weeks)
+Used only at refresh endpoint
+Never used for API authorization
+Stored server-side (DB / Redis)
+Can be revoked
+
+We intentionally keep access tokens short-lived because they are risky if leaked.
+To avoid forcing the user to log in again after access token expiry, we use a refresh token.
+
+During login, both access and refresh tokens are created.
+Refresh tokens are ususally opaque random string. We will store this string in redis database.
+When the access token expires, the client calls a refresh endpoint with the refresh token. 
+
+The server checks the refresh token in the database to verify that it exists. 
+If it exists, then it is a refresh token. 
+If it does not exists, the refresh token is invalid and error should be raised. 
+
+If the refresh token is valid, the server issues a new access token.
+This process can repeat until the refresh token itself expires or is revoked.
+
+For logging out, we just need to remove the refresh token from the redis database, so that no new access token is generated. 
+But remember this case : 
+My access token is valid for 10 minutes. so i login and logout within 2 minutes, the access token will be still valid for remaning 8 minutes, even though refresh token is deleted from the database. 
+This is expected behavior in stateless JWT systems.
+Because:
+Access tokens are stateless
+Server does not track them
+JWT cannot be revoked without state
+
+This is the price we pay for:
+Scalability
+Performance
+No DB lookup per request
+
+So,
+Logout invalidates the refresh token immediately, preventing new access tokens.
+Existing access tokens remain valid until expiry due to stateless design.
+This is a known trade-off and is mitigated by keeping access token TTL short.
+
+-------------------------------------------------------
+
+Logic to implement refresh and logout mechanism : 
+
+1. Set up redis
+   --> pip install redis
+   --> logic for adding token and deleteing token : src/db/redis.py
+          add REDIS_HOST and REDIS_PORT in .env and define them in config.py
+          Here we will have 3 functions : one to store the token in redis, get the user_detail if we provide the token and delete the token from redis.
+          For storing token in redis, we use redis.setex
+            Syntax : 
+            SETEX KEY_NAME TIMEOUT VALUE
+            KEY_NAME: The name of the key to set.
+            TIMEOUT: The expiration time in seconds.
+            VALUE: The string value to store. 
+            
+            Example:
+            redis> SETEX mykey 60 "hello world"
+            OK
+            redis> TTL mykey
+            60
+            redis> GET mykey
+            "hello world"
+            After 60 seconds, the mykey will automatically expire and be removed from the database. 
+
+            Note : the value should be in str, but we need the value to store user_details, so we convert dict to str using json. 
+
+2. Modify login endpoint
+While login request, create refresh token as well. We will use uuid to generate random string for refresh token. 
+Store this token in redis database, so call the function store_refresh_token. 
+
+3. Create a refresh endpoint
+When this is hit, we check if the token exists in redis database, if not raise error. Otherwise we create a new access token.
+
+
+
+
+
 
 
 
