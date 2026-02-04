@@ -1,8 +1,8 @@
-"""create user auth table
+"""initial auth table
 
-Revision ID: 5037349f9ab4
+Revision ID: 41d2b1d37828
 Revises: 
-Create Date: 2026-01-27 22:47:28.327748
+Create Date: 2026-02-04 22:00:53.437386
 
 """
 from typing import Sequence, Union
@@ -16,7 +16,7 @@ import sqlmodel
 # ---- added by me ----- 
 
 # revision identifiers, used by Alembic.
-revision: str = '5037349f9ab4'
+revision: str = '41d2b1d37828'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -30,6 +30,7 @@ def upgrade() -> None:
     sa.Column('username', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('email', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('password', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+    sa.Column('role', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('created_at', postgresql.TIMESTAMP(), nullable=True),
     sa.Column('updated_at', postgresql.TIMESTAMP(), nullable=True),
     sa.PrimaryKeyConstraint('id')

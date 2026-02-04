@@ -3,8 +3,9 @@ from src.auth.models import CreateUserModel, UserAuthModel, LoginUserModel
 from sqlalchemy.ext.asyncio.session import AsyncSession
 from src.db.main import get_session
 from src.auth.services import Service
-from src.auth.dependencies import get_current_user
+from src.auth.dependencies import get_current_user, required_role
 from src.db.redis import get_refresh_token_data
+
 user_router = APIRouter()
 auth_service = Service()
 
@@ -32,4 +33,14 @@ async def refresh_token(refresh_token:str):
     token_data = get_refresh_token_data(refresh_token)
     print("token_data", token_data)
 
+# endpoint to allow access to admin only
+@user_router.get("/admin")
+async def admin_dashboard(user=Depends(required_role("ADMIN"))):
+    print("Hello, this is admin dashboard")
+    return {"message":"Hello, this is admin dashboard"}
 
+# endpoint to allow access to user only
+@user_router.get("/user")
+async def user_dashboard(user=Depends(required_role("USER"))):
+    print("Hello, this is user dashboard")
+    return {"message":"Hello, this is user dashboard"}

@@ -25,6 +25,7 @@ class Service:
         user_dict = user_data.model_dump()
         newuser = UserAuthModel(**user_dict)
         newuser.password = hash_password(user_dict["password"])
+
         session.add(newuser)
         await session.commit()
         await session.refresh(newuser)
@@ -42,22 +43,22 @@ class Service:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Credentials")
         
         # user is valid, so create access token
-        access_token = create_jwt_token(user_data={"user_id":existing_user.id , "email":existing_user.email})
+        access_token = create_jwt_token(user_data={"user_id":existing_user.id , "email":existing_user.email, "role":existing_user.role})
         print("Created token -->", access_token)
 
         # user is valid, so create refresh token and store in redis database
-        refresh_token = str(uuid.uuid4())
-        await store_refresh_token(
-            refresh_token,
-            existing_user.id,
-            existing_user.email,
-            timedelta(days=7)
-        )
+        # refresh_token = str(uuid.uuid4())
+        # await store_refresh_token(
+        #     refresh_token,
+        #     existing_user.id,
+        #     existing_user.email,
+        #     timedelta(days=7)
+        # )
         
         return {
             "message":"Login successful",
             "access_token" : access_token,
-            "user_details" : {"user_id":existing_user.id, "email":existing_user.email}
+            "user_details" : {"user_id":existing_user.id, "email":existing_user.email, "role":existing_user.role}
         }
         
 

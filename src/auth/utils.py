@@ -23,7 +23,7 @@ def create_jwt_token(user_data:dict, expiry:timedelta = None):
     payload = {
         "user" : user_data,
         "iat" : datetime.now(tz=timezone.utc),
-        "exp" : datetime.now(tz=timezone.utc) + (expiry if expiry is not None else timedelta(minutes=2)),
+        "exp" : datetime.now(tz=timezone.utc) + (expiry if expiry is not None else timedelta(minutes=10)),
         "jti" : str(uuid.uuid4())  # unique id given to jwt token
     }
 

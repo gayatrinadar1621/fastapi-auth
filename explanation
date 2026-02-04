@@ -331,7 +331,20 @@ Store this token in redis database, so call the function store_refresh_token.
 When this is hit, we check if the token exists in redis database, if not raise error. Otherwise we create a new access token.
 
 
+==================================================================
 
+Implementing Role Based Access : 
+
+Here, we will try to implement simple role based access. 
+
+1. Modify models.py to add role field with default value as "USER"
+2. While creating token pass role as well to store in user_data
+3. In dependencies.py, create the core logic for role based access and call this via DI in the route.
+   The outer function will store the role passed by the route
+   The inner function will check whether the role in the request and the one we have matches, if not we raise error. 
+
+Why nested function?
+When we pass the value for reqyured_role, we are actually calling the function, but DI requires callable object, so when we return a function, and now this function will run on every request. 
 
 
 
